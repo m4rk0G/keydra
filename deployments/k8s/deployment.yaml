@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keydra
+  namespace: vault
+  labels:
+    app: keydra
+    version: v1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keydra
+  template:
+    metadata:
+      labels:
+        app: keydra
+    spec:
+      serviceAccountName: keydra
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: keydra
+        image: m4rk0g/keydra:latest
+        imagePullPolicy: Always
+        args:
+        - "-config=/etc/keydra/config.yaml"
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /etc/keydra
+          readOnly: true
+        - name: unseal-keys
+          mountPath: /etc/keydra/secrets
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - keydra
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          exec:
+            command:
+            - pgrep
+            - keydra
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: keydra-config
+      - name: unseal-keys
+        secret:
+          secretName: vault-unseal-keys
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keydra
+  namespace: vault
+  labels:
+    app: keydra
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: metrics
+  selector:
+    app: keydra

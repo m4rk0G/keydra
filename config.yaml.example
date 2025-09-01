@@ -1,0 +1,26 @@
+vault:
+  nodes:
+    - "http://localhost:8200"
+    - "http://localhost:8201"
+    - "http://localhost:8202"
+  namespace: "" # Optional Vault namespace
+  unseal_keys:
+    - "your-base64-encoded-unseal-key-1"
+    - "your-base64-encoded-unseal-key-2"
+    - "your-base64-encoded-unseal-key-3"
+  tls:
+    enabled: true
+    ca_cert: "/etc/ssl/certs/vault-ca.crt"
+    client_cert: "" # Optional
+    client_key: ""  # Optional
+    insecure: false # Set to true to skip certificate verification
+
+kubernetes:
+  in_cluster: true # Set to false for local development
+  config_path: "~/.kube/config" # Used when in_cluster is false
+  namespace: "vault" # Namespace where Vault pods are running
+
+app:
+  check_interval: "30s" # How often to check if Vault needs unsealing
+  log_level: "info" # Log level: debug, info, warn, error
+  metrics_addr: ":8080" # Optional metrics endpoint
